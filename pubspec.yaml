@@ -1,0 +1,20 @@
+name: enhanced_split_view
+description: A clean, performant split view widget for Flutter with smooth animations and intuitive API.
+version: 1.0.0
+homepage: https://github.com/yourusername/enhanced_split_view
+repository: https://github.com/yourusername/enhanced_split_view
+issue_tracker: https://github.com/yourusername/enhanced_split_view/issues
+documentation: https://github.com/yourusername/enhanced_split_view#readme
+
+environment:
+  sdk: ^3.9.2
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
