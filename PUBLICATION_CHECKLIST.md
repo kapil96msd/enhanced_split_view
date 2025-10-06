@@ -27,7 +27,7 @@ Use this checklist before publishing to pub.dev.
 
 ### Package Configuration
 - [x] `pubspec.yaml` has correct version number (1.0.0)
-- [ ] `pubspec.yaml` has real GitHub URLs (replace YOUR_GITHUB_USERNAME)
+- [x] `pubspec.yaml` has real GitHub URLs (replace YOUR_GITHUB_USERNAME)
 - [x] `pubspec.yaml` has proper description (60-180 chars)
 - [ ] `pubspec.yaml` has homepage, repository, issue_tracker URLs
 - [x] SDK constraints are correct (`sdk: ^3.9.2`)
