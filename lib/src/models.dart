@@ -13,7 +13,7 @@ enum SplitDirection {
 }
 
 /// Styling for the divider between panes
-// @immutable
+@immutable
 class DividerStyle {
   /// Width of the divider area (touch target)
   final double width;
@@ -30,14 +30,17 @@ class DividerStyle {
   /// Whether to show the drag handle
   final bool showHandle;
 
+  /// Creates a divider style with customizable properties
   const DividerStyle({
     this.width = 8.0,
     this.color = const Color(0xFFE0E0E0),
     this.hoverColor = const Color(0xFF2196F3),
     this.handleSize = 48.0,
     this.showHandle = true,
-  });
+  }) : assert(width >= 0, 'width must be non-negative'),
+       assert(handleSize >= 0, 'handleSize must be non-negative');
 
+  /// Creates a copy of this style with the given fields replaced
   DividerStyle copyWith({
     double? width,
     Color? color,
@@ -53,4 +56,19 @@ class DividerStyle {
       showHandle: showHandle ?? this.showHandle,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is DividerStyle &&
+        other.width == width &&
+        other.color == color &&
+        other.hoverColor == hoverColor &&
+        other.handleSize == handleSize &&
+        other.showHandle == showHandle;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(width, color, hoverColor, handleSize, showHandle);
 }

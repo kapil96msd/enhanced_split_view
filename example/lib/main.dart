@@ -136,8 +136,10 @@ class _ThreePaneExampleState extends State<ThreePaneExample> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Text('3-Pane Split',
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                '3-Pane Split',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 8),
               Text('Current weights: $_weights'),
               const SizedBox(height: 4),
@@ -160,7 +162,6 @@ class _ThreePaneExampleState extends State<ThreePaneExample> {
                       .map((w) => '${(w * 100).toStringAsFixed(1)}%')
                       .join(' : ');
                 });
-                print('Weights changed: $weights'); // Debug output
               },
               children: [
                 _buildPane('Left\n25%', Colors.red.shade100, 'Pane 1'),

@@ -47,7 +47,10 @@ class SplitView extends StatefulWidget {
     this.dividerStyle = const DividerStyle(),
     this.onWeightsChanged,
     this.animated = true,
-  }) : assert(children.length >= 2, 'Need at least 2 children');
+  }) : assert(
+  children.length >= 2,
+  'SplitView requires at least 2 children, but got ${children.length}',
+  );
 
   @override
   State<SplitView> createState() => _SplitViewState();
@@ -66,11 +69,29 @@ class _SplitViewState extends State<SplitView> {
     if (widget.initialWeights != null &&
         widget.initialWeights!.length == widget.children.length) {
       _weights = List.from(widget.initialWeights!);
+      _normalizeWeights();
+
+      // Validate sum in debug mode
+      if (widget.initialWeights != null) {
+        final sum = widget.initialWeights!.fold<double>(0.0, (a, b) => a + b);
+        if ((sum - 1.0).abs() > 0.01) {
+          debugPrint(
+            'Warning: initialWeights should sum to 1.0, but sum to $sum. '
+                'Weights have been normalized.',
+          );
+        }
+      }
     } else {
+      if (widget.initialWeights != null) {
+        debugPrint(
+          'Warning: initialWeights length (${widget.initialWeights!.length}) '
+              'does not match children length (${widget.children.length}). '
+              'Using equal distribution instead.',
+        );
+      }
       final equal = 1.0 / widget.children.length;
       _weights = List.filled(widget.children.length, equal);
     }
-    _normalizeWeights();
   }
 
   @override
@@ -97,17 +118,21 @@ class _SplitViewState extends State<SplitView> {
     final deltaWeight = delta / totalSize;
 
     // Calculate new weights for the two adjacent panes
+    // Note: This only affects the panes on either side of the dragged divider.
+    // Other panes in multi-pane layouts remain unchanged.
     var newLeftWeight = _weights[leftIndex] + deltaWeight;
     var newRightWeight = _weights[rightIndex] - deltaWeight;
 
     // Apply minimum constraints
     if (newLeftWeight < widget.minWeight) {
       newLeftWeight = widget.minWeight;
-      newRightWeight = _weights[leftIndex] + _weights[rightIndex] - newLeftWeight;
+      newRightWeight =
+          _weights[leftIndex] + _weights[rightIndex] - newLeftWeight;
     }
     if (newRightWeight < widget.minWeight) {
       newRightWeight = widget.minWeight;
-      newLeftWeight = _weights[leftIndex] + _weights[rightIndex] - newRightWeight;
+      newLeftWeight =
+          _weights[leftIndex] + _weights[rightIndex] - newRightWeight;
     }
 
     // Only update if both constraints are satisfied
@@ -116,9 +141,8 @@ class _SplitViewState extends State<SplitView> {
       setState(() {
         _weights[leftIndex] = newLeftWeight;
         _weights[rightIndex] = newRightWeight;
-        // Don't call _normalizeWeights() - keep other panes unchanged
       });
-      widget.onWeightsChanged?.call(_weights);
+      widget.onWeightsChanged?.call(List.unmodifiable(_weights));
     }
   }
 
@@ -147,10 +171,10 @@ class _SplitViewState extends State<SplitView> {
   }
 
   List<Widget> _buildChildren(
-    double contentSize,
-    double totalSize,
-    bool isHorizontal,
-  ) {
+      double contentSize,
+      double totalSize,
+      bool isHorizontal,
+      ) {
     final children = <Widget>[];
 
     for (int i = 0; i < widget.children.length; i++) {
@@ -158,6 +182,7 @@ class _SplitViewState extends State<SplitView> {
 
       children.add(
         _AnimatedPane(
+          key: ValueKey('pane_$i'),
           size: size,
           isHorizontal: isHorizontal,
           animate: widget.animated,
@@ -168,6 +193,7 @@ class _SplitViewState extends State<SplitView> {
       if (i < widget.children.length - 1) {
         children.add(
           _Divider(
+            key: ValueKey('divider_$i'),
             index: i,
             isHorizontal: isHorizontal,
             style: widget.dividerStyle,
@@ -181,6 +207,7 @@ class _SplitViewState extends State<SplitView> {
   }
 }
 
+/// Animated pane widget with improved animation handling
 class _AnimatedPane extends StatelessWidget {
   final double size;
   final bool isHorizontal;
@@ -188,6 +215,7 @@ class _AnimatedPane extends StatelessWidget {
   final Widget child;
 
   const _AnimatedPane({
+    super.key,
     required this.size,
     required this.isHorizontal,
     required this.animate,
@@ -196,27 +224,27 @@ class _AnimatedPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sizedChild = SizedBox(
-      width: isHorizontal ? size : null,
-      height: isHorizontal ? null : size,
-      child: child,
-    );
+    if (!animate) {
+      return SizedBox(
+        width: isHorizontal ? size : null,
+        height: isHorizontal ? null : size,
+        child: child,
+      );
+    }
 
-    if (!animate) return sizedChild;
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: size, end: size),
+    return AnimatedSize(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
-      builder: (context, animatedSize, _) => SizedBox(
-        width: isHorizontal ? animatedSize : null,
-        height: isHorizontal ? null : animatedSize,
+      child: SizedBox(
+        width: isHorizontal ? size : null,
+        height: isHorizontal ? null : size,
         child: child,
       ),
     );
   }
 }
 
+/// Divider widget with hover and drag support
 class _Divider extends StatefulWidget {
   final int index;
   final bool isHorizontal;
@@ -224,6 +252,7 @@ class _Divider extends StatefulWidget {
   final ValueChanged<double> onDrag;
 
   const _Divider({
+    super.key,
     required this.index,
     required this.isHorizontal,
     required this.style,
@@ -258,25 +287,26 @@ class _DividerState extends State<_Divider> {
         },
         onPanStart: (_) => setState(() => _isDragging = true),
         onPanEnd: (_) => setState(() => _isDragging = false),
+        onPanCancel: () => setState(() => _isDragging = false),
         child: Container(
           width: widget.isHorizontal ? widget.style.width : null,
           height: widget.isHorizontal ? null : widget.style.width,
-          color: color.withValues(alpha: 0.3),
+          color: color.withOpacity(0.3),
           child: widget.style.showHandle
               ? Center(
-                  child: AnimatedOpacity(
-                    opacity: isActive ? 1.0 : 0.5,
-                    duration: const Duration(milliseconds: 150),
-                    child: Container(
-                      width: widget.isHorizontal ? 4 : widget.style.handleSize,
-                      height: widget.isHorizontal ? widget.style.handleSize : 4,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                )
+            child: AnimatedOpacity(
+              opacity: isActive ? 1.0 : 0.5,
+              duration: const Duration(milliseconds: 150),
+              child: Container(
+                width: widget.isHorizontal ? 4 : widget.style.handleSize,
+                height: widget.isHorizontal ? widget.style.handleSize : 4,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          )
               : null,
         ),
       ),
