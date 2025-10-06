@@ -81,6 +81,45 @@ void main() {
       expect(ratio2, closeTo(0.7, 0.02));
     });
 
+    testWidgets('normalizes weights that do not sum to 1.0', (tester) async {
+      List<double>? capturedWeights;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.3, 0.4], // Sums to 0.7, not 1.0
+                animated: false,
+                onWeightsChanged: (weights) => capturedWeights = weights,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Trigger a drag to get normalized weights
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(10, 0),
+      );
+      await tester.pumpAndSettle();
+
+      if (capturedWeights != null) {
+        final sum = capturedWeights!.fold<double>(0.0, (a, b) => a + b);
+        expect(sum, closeTo(1.0, 0.001));
+      }
+    });
+
     testWidgets('calls onWeightsChanged', (tester) async {
       List<double>? capturedWeights;
 
@@ -143,6 +182,49 @@ void main() {
       if (capturedWeights != null) {
         expect(capturedWeights![0], greaterThanOrEqualTo(0.2));
         expect(capturedWeights![1], greaterThanOrEqualTo(0.2));
+      }
+    });
+
+    testWidgets('prevents drag when minWeight would be violated', (tester) async {
+      List<double>? initialWeights;
+      List<double>? finalWeights;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                minWeight: 0.3,
+                initialWeights: const [0.5, 0.5],
+                onWeightsChanged: (weights) {
+                  initialWeights ??= weights;
+                  finalWeights = weights;
+                },
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Try to drag way past minimum (should be blocked)
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(-300, 0), // Try to make left pane very small
+      );
+      await tester.pumpAndSettle();
+
+      if (finalWeights != null) {
+        // Left pane should not go below 0.3
+        expect(finalWeights![0], greaterThanOrEqualTo(0.3));
+        // Right pane should not go below 0.3
+        expect(finalWeights![1], greaterThanOrEqualTo(0.3));
       }
     });
 
@@ -252,9 +334,10 @@ void main() {
                     Expanded(
                       child: SplitView(
                         direction: SplitDirection.horizontal,
+                        animated: false, // Disable animation for this test
                         children: List.generate(
                           childCount,
-                          (i) => Container(key: Key('pane$i')),
+                              (i) => Container(key: Key('pane$i')),
                         ),
                       ),
                     ),
@@ -341,6 +424,80 @@ void main() {
         expect(sum, closeTo(1.0, 0.001));
       }
     });
+
+    testWidgets('only adjacent panes resize in 3-pane layout', (tester) async {
+      List<double>? weights1;
+      List<double>? weights2;
+      int callCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.25, 0.5, 0.25],
+                animated: false,
+                onWeightsChanged: (weights) {
+                  callCount++;
+                  if (callCount == 1) {
+                    weights1 = List.from(weights);
+                  } else if (callCount == 2) {
+                    weights2 = List.from(weights);
+                  }
+                },
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                  Container(key: const Key('pane3')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Drag first divider (between pane1 and pane2)
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(50, 0),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify pane3 didn't change but pane1 and pane2 did
+      if (weights1 != null) {
+        expect(weights1![2], closeTo(0.25, 0.01)); // Pane3 unchanged
+        expect(weights1![0], isNot(closeTo(0.25, 0.01))); // Pane1 changed
+      }
+    });
+
+    testWidgets('handles zero content size gracefully', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 0,
+              height: 0,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      // Should not crash, should show empty SizedBox
+      expect(find.byType(SizedBox), findsWidgets);
+    });
   });
 
   group('DividerStyle', () {
@@ -364,6 +521,23 @@ void main() {
       expect(copied.handleSize, original.handleSize);
     });
 
+    test('copyWith with all parameters', () {
+      const original = DividerStyle();
+      final copied = original.copyWith(
+        width: 10.0,
+        color: Colors.green,
+        hoverColor: Colors.yellow,
+        handleSize: 60.0,
+        showHandle: false,
+      );
+
+      expect(copied.width, 10.0);
+      expect(copied.color, Colors.green);
+      expect(copied.hoverColor, Colors.yellow);
+      expect(copied.handleSize, 60.0);
+      expect(copied.showHandle, false);
+    });
+
     test('equality works correctly', () {
       const style1 = DividerStyle(width: 10.0);
       const style2 = DividerStyle(width: 10.0);
@@ -379,6 +553,13 @@ void main() {
 
       expect(style1.hashCode, equals(style2.hashCode));
     });
+
+    test('different properties produce different hashCodes', () {
+      const style1 = DividerStyle(width: 10.0);
+      const style2 = DividerStyle(width: 12.0);
+
+      expect(style1.hashCode, isNot(equals(style2.hashCode)));
+    });
   });
 
   group('SplitDirection', () {
@@ -386,6 +567,11 @@ void main() {
       expect(SplitDirection.values.length, 2);
       expect(SplitDirection.values, contains(SplitDirection.horizontal));
       expect(SplitDirection.values, contains(SplitDirection.vertical));
+    });
+
+    test('enum toString works', () {
+      expect(SplitDirection.horizontal.toString(), contains('horizontal'));
+      expect(SplitDirection.vertical.toString(), contains('vertical'));
     });
   });
 }

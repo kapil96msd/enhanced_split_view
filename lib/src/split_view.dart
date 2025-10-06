@@ -207,7 +207,7 @@ class _SplitViewState extends State<SplitView> {
   }
 }
 
-/// Animated pane widget with improved animation handling
+/// Animated pane widget with smooth size transitions
 class _AnimatedPane extends StatelessWidget {
   final double size;
   final bool isHorizontal;
@@ -224,22 +224,26 @@ class _AnimatedPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sizedChild = SizedBox(
+      width: isHorizontal ? size : null,
+      height: isHorizontal ? null : size,
+      child: child,
+    );
+
     if (!animate) {
-      return SizedBox(
-        width: isHorizontal ? size : null,
-        height: isHorizontal ? null : size,
-        child: child,
-      );
+      return sizedChild;
     }
 
-    return AnimatedSize(
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: size, end: size),
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
-      child: SizedBox(
-        width: isHorizontal ? size : null,
-        height: isHorizontal ? null : size,
+      builder: (context, value, child) => SizedBox(
+        width: isHorizontal ? value : null,
+        height: isHorizontal ? null : value,
         child: child,
       ),
+      child: child,
     );
   }
 }
