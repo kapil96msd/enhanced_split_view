@@ -136,12 +136,15 @@ class _ThreePaneExampleState extends State<ThreePaneExample> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Text(
-                '3-Pane Split',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+              Text('3-Pane Split',
+                  style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 8),
               Text('Current weights: $_weights'),
+              const SizedBox(height: 4),
+              const Text(
+                'Drag divider 1 to resize Left/Center. Drag divider 2 to resize Center/Right.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
             ],
           ),
         ),
@@ -154,14 +157,15 @@ class _ThreePaneExampleState extends State<ThreePaneExample> {
               onWeightsChanged: (weights) {
                 setState(() {
                   _weights = weights
-                      .map((w) => '${(w * 100).toStringAsFixed(0)}%')
+                      .map((w) => '${(w * 100).toStringAsFixed(1)}%')
                       .join(' : ');
                 });
+                print('Weights changed: $weights'); // Debug output
               },
               children: [
-                _buildPane('Left\n25%', Colors.red.shade100),
-                _buildPane('Center\n50%', Colors.blue.shade100),
-                _buildPane('Right\n25%', Colors.green.shade100),
+                _buildPane('Left\n25%', Colors.red.shade100, 'Pane 1'),
+                _buildPane('Center\n50%', Colors.blue.shade100, 'Pane 2'),
+                _buildPane('Right\n25%', Colors.green.shade100, 'Pane 3'),
               ],
             ),
           ),
@@ -170,14 +174,24 @@ class _ThreePaneExampleState extends State<ThreePaneExample> {
     );
   }
 
-  Widget _buildPane(String text, Color color) {
+  Widget _buildPane(String text, Color color, String label) {
     return Container(
       color: color,
       child: Center(
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 18),
-          textAlign: TextAlign.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              text,
+              style: const TextStyle(fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

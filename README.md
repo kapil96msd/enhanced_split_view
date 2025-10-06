@@ -144,3 +144,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 If you find this package helpful, please give it a ⭐ on GitHub!
 For issues and feature requests, please use the issue tracker.
 
+## How Resizing Works
+
+When dragging a divider in a multi-pane layout:
+- Only the two **adjacent** panes resize
+- Other panes maintain their current size
+- Example: In a 3-pane layout (A | B | C), dragging the divider between A and B only affects A and B, while C stays the same size
+

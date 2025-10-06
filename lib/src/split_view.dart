@@ -95,21 +95,28 @@ class _SplitViewState extends State<SplitView> {
     final rightIndex = dividerIndex + 1;
 
     final deltaWeight = delta / totalSize;
-    final newLeftWeight = (_weights[leftIndex] + deltaWeight).clamp(
-      widget.minWeight,
-      1.0 - widget.minWeight,
-    );
-    final newRightWeight = (_weights[rightIndex] - deltaWeight).clamp(
-      widget.minWeight,
-      1.0 - widget.minWeight,
-    );
 
+    // Calculate new weights for the two adjacent panes
+    var newLeftWeight = _weights[leftIndex] + deltaWeight;
+    var newRightWeight = _weights[rightIndex] - deltaWeight;
+
+    // Apply minimum constraints
+    if (newLeftWeight < widget.minWeight) {
+      newLeftWeight = widget.minWeight;
+      newRightWeight = _weights[leftIndex] + _weights[rightIndex] - newLeftWeight;
+    }
+    if (newRightWeight < widget.minWeight) {
+      newRightWeight = widget.minWeight;
+      newLeftWeight = _weights[leftIndex] + _weights[rightIndex] - newRightWeight;
+    }
+
+    // Only update if both constraints are satisfied
     if (newLeftWeight >= widget.minWeight &&
         newRightWeight >= widget.minWeight) {
       setState(() {
         _weights[leftIndex] = newLeftWeight;
         _weights[rightIndex] = newRightWeight;
-        _normalizeWeights();
+        // Don't call _normalizeWeights() - keep other panes unchanged
       });
       widget.onWeightsChanged?.call(_weights);
     }
