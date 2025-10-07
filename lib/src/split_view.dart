@@ -48,9 +48,9 @@ class SplitView extends StatefulWidget {
     this.onWeightsChanged,
     this.animated = true,
   }) : assert(
-  children.length >= 2,
-  'SplitView requires at least 2 children, but got ${children.length}',
-  );
+         children.length >= 2,
+         'SplitView requires at least 2 children, but got ${children.length}',
+       );
 
   @override
   State<SplitView> createState() => _SplitViewState();
@@ -77,7 +77,7 @@ class _SplitViewState extends State<SplitView> {
         if ((sum - 1.0).abs() > 0.01) {
           debugPrint(
             'Warning: initialWeights should sum to 1.0, but sum to $sum. '
-                'Weights have been normalized.',
+            'Weights have been normalized.',
           );
         }
       }
@@ -85,8 +85,8 @@ class _SplitViewState extends State<SplitView> {
       if (widget.initialWeights != null) {
         debugPrint(
           'Warning: initialWeights length (${widget.initialWeights!.length}) '
-              'does not match children length (${widget.children.length}). '
-              'Using equal distribution instead.',
+          'does not match children length (${widget.children.length}). '
+          'Using equal distribution instead.',
         );
       }
       final equal = 1.0 / widget.children.length;
@@ -171,10 +171,10 @@ class _SplitViewState extends State<SplitView> {
   }
 
   List<Widget> _buildChildren(
-      double contentSize,
-      double totalSize,
-      bool isHorizontal,
-      ) {
+    double contentSize,
+    double totalSize,
+    bool isHorizontal,
+  ) {
     final children = <Widget>[];
 
     for (int i = 0; i < widget.children.length; i++) {
@@ -207,8 +207,8 @@ class _SplitViewState extends State<SplitView> {
   }
 }
 
-/// Animated pane widget with smooth size transitions
-class _AnimatedPane extends StatelessWidget {
+/// Animated pane widget with proper animation handling
+class _AnimatedPane extends StatefulWidget {
   final double size;
   final bool isHorizontal;
   final bool animate;
@@ -223,27 +223,51 @@ class _AnimatedPane extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final sizedChild = SizedBox(
-      width: isHorizontal ? size : null,
-      height: isHorizontal ? null : size,
-      child: child,
-    );
+  State<_AnimatedPane> createState() => _AnimatedPaneState();
+}
 
-    if (!animate) {
-      return sizedChild;
+class _AnimatedPaneState extends State<_AnimatedPane> {
+  double? _previousSize;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousSize = widget.size;
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.size != widget.size) {
+      _previousSize = oldWidget.size;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.animate) {
+      return SizedBox(
+        width: widget.isHorizontal ? widget.size : null,
+        height: widget.isHorizontal ? null : widget.size,
+        child: widget.child,
+      );
     }
 
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: size, end: size),
+      key: ValueKey(widget.size),
+      tween: Tween(begin: _previousSize ?? widget.size, end: widget.size),
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
-      builder: (context, value, child) => SizedBox(
-        width: isHorizontal ? value : null,
-        height: isHorizontal ? null : value,
-        child: child,
+      onEnd: () {
+        if (mounted) {
+          setState(() => _previousSize = widget.size);
+        }
+      },
+      builder: (context, animatedSize, _) => SizedBox(
+        width: widget.isHorizontal ? animatedSize : null,
+        height: widget.isHorizontal ? null : animatedSize,
+        child: widget.child,
       ),
-      child: child,
     );
   }
 }
@@ -298,19 +322,19 @@ class _DividerState extends State<_Divider> {
           color: color.withOpacity(0.3),
           child: widget.style.showHandle
               ? Center(
-            child: AnimatedOpacity(
-              opacity: isActive ? 1.0 : 0.5,
-              duration: const Duration(milliseconds: 150),
-              child: Container(
-                width: widget.isHorizontal ? 4 : widget.style.handleSize,
-                height: widget.isHorizontal ? widget.style.handleSize : 4,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-          )
+                  child: AnimatedOpacity(
+                    opacity: isActive ? 1.0 : 0.5,
+                    duration: const Duration(milliseconds: 150),
+                    child: Container(
+                      width: widget.isHorizontal ? 4 : widget.style.handleSize,
+                      height: widget.isHorizontal ? widget.style.handleSize : 4,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                )
               : null,
         ),
       ),

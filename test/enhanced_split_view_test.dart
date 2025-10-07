@@ -185,7 +185,9 @@ void main() {
       }
     });
 
-    testWidgets('prevents drag when minWeight would be violated', (tester) async {
+    testWidgets('prevents drag when minWeight would be violated', (
+      tester,
+    ) async {
       List<double>? initialWeights;
       List<double>? finalWeights;
 
@@ -337,7 +339,7 @@ void main() {
                         animated: false, // Disable animation for this test
                         children: List.generate(
                           childCount,
-                              (i) => Container(key: Key('pane$i')),
+                          (i) => Container(key: Key('pane$i')),
                         ),
                       ),
                     ),
