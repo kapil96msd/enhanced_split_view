@@ -319,7 +319,7 @@ class _DividerState extends State<_Divider> {
         child: Container(
           width: widget.isHorizontal ? widget.style.width : null,
           height: widget.isHorizontal ? null : widget.style.width,
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           child: widget.style.showHandle
               ? Center(
                   child: AnimatedOpacity(

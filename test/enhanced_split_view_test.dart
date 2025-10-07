@@ -429,8 +429,6 @@ void main() {
 
     testWidgets('only adjacent panes resize in 3-pane layout', (tester) async {
       List<double>? weights1;
-      List<double>? weights2;
-      int callCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -443,12 +441,7 @@ void main() {
                 initialWeights: const [0.25, 0.5, 0.25],
                 animated: false,
                 onWeightsChanged: (weights) {
-                  callCount++;
-                  if (callCount == 1) {
-                    weights1 = List.from(weights);
-                  } else if (callCount == 2) {
-                    weights2 = List.from(weights);
-                  }
+                  weights1 = List.from(weights);
                 },
                 children: [
                   Container(key: const Key('pane1')),
