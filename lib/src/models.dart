@@ -1,5 +1,5 @@
 // ============================================================================
-// FILE: lib/src/models.dart
+// FILE: lib/src/models.dart (v1.1.0)
 // ============================================================================
 import 'package:flutter/material.dart';
 
@@ -71,4 +71,35 @@ class DividerStyle {
   @override
   int get hashCode =>
       Object.hash(width, color, hoverColor, handleSize, showHandle);
+}
+
+/// Size constraints for a pane in pixels
+@immutable
+class SizeConstraint {
+  /// Minimum size in pixels (null = use minWeight)
+  final double? minSize;
+
+  /// Maximum size in pixels (null = no maximum)
+  final double? maxSize;
+
+  /// Creates size constraints for a pane
+  const SizeConstraint({this.minSize, this.maxSize})
+    : assert(
+        minSize == null || maxSize == null || minSize <= maxSize,
+        'minSize must be less than or equal to maxSize',
+      );
+
+  /// No constraints
+  static const none = SizeConstraint();
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SizeConstraint &&
+        other.minSize == minSize &&
+        other.maxSize == maxSize;
+  }
+
+  @override
+  int get hashCode => Object.hash(minSize, maxSize);
 }

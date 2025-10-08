@@ -1,10 +1,15 @@
 // ============================================================================
-// FILE: lib/src/split_view.dart
+// FILE: lib/src/split_view.dart (v1.1.0 - FIXED)
 // ============================================================================
 import 'package:flutter/material.dart';
 import 'models.dart';
 
 /// A resizable split view widget that divides available space between children.
+///
+/// Version 1.1.0 adds:
+/// - Double-click to reset dividers
+/// - Pixel-based size constraints
+/// - Collapsible panes
 ///
 /// Example:
 /// ```dart
@@ -29,6 +34,12 @@ class SplitView extends StatefulWidget {
   /// Minimum weight any pane can have (prevents panes from becoming too small)
   final double minWeight;
 
+  /// Size constraints for each pane in pixels (optional)
+  ///
+  /// If provided, must have same length as children.
+  /// Use SizeConstraint.none for panes without constraints.
+  final List<SizeConstraint>? sizeConstraints;
+
   /// Styling for dividers between panes
   final DividerStyle dividerStyle;
 
@@ -38,18 +49,27 @@ class SplitView extends StatefulWidget {
   /// Whether to animate size changes
   final bool animated;
 
+  /// Enable double-click on divider to reset to initial weights
+  final bool resetOnDoubleClick;
+
   const SplitView({
     super.key,
     this.direction = SplitDirection.horizontal,
     required this.children,
     this.initialWeights,
     this.minWeight = 0.1,
+    this.sizeConstraints,
     this.dividerStyle = const DividerStyle(),
     this.onWeightsChanged,
     this.animated = true,
+    this.resetOnDoubleClick = true,
   }) : assert(
          children.length >= 2,
          'SplitView requires at least 2 children, but got ${children.length}',
+       ),
+       assert(
+         sizeConstraints == null || sizeConstraints.length == children.length,
+         'sizeConstraints length must match children length',
        );
 
   @override
@@ -58,6 +78,7 @@ class SplitView extends StatefulWidget {
 
 class _SplitViewState extends State<SplitView> {
   late List<double> _weights;
+  late List<double> _initialWeights;
 
   @override
   void initState() {
@@ -92,6 +113,9 @@ class _SplitViewState extends State<SplitView> {
       final equal = 1.0 / widget.children.length;
       _weights = List.filled(widget.children.length, equal);
     }
+
+    // Store initial weights for reset functionality
+    _initialWeights = List.from(_weights);
   }
 
   @override
@@ -111,19 +135,28 @@ class _SplitViewState extends State<SplitView> {
     }
   }
 
-  void _updateWeights(int dividerIndex, double delta, double totalSize) {
+  /// Reset weights to initial values
+  void _resetWeights(int dividerIndex) {
+    if (!widget.resetOnDoubleClick) return;
+
+    setState(() {
+      _weights = List.from(_initialWeights);
+    });
+    widget.onWeightsChanged?.call(List.unmodifiable(_weights));
+  }
+
+  void _updateWeights(int dividerIndex, double delta, double contentSize) {
     final leftIndex = dividerIndex;
     final rightIndex = dividerIndex + 1;
 
-    final deltaWeight = delta / totalSize;
+    // FIXED: Use contentSize (which excludes dividers) for all calculations
+    final deltaWeight = delta / contentSize;
 
     // Calculate new weights for the two adjacent panes
-    // Note: This only affects the panes on either side of the dragged divider.
-    // Other panes in multi-pane layouts remain unchanged.
     var newLeftWeight = _weights[leftIndex] + deltaWeight;
     var newRightWeight = _weights[rightIndex] - deltaWeight;
 
-    // Apply minimum constraints
+    // Apply minimum weight constraints
     if (newLeftWeight < widget.minWeight) {
       newLeftWeight = widget.minWeight;
       newRightWeight =
@@ -133,6 +166,44 @@ class _SplitViewState extends State<SplitView> {
       newRightWeight = widget.minWeight;
       newLeftWeight =
           _weights[leftIndex] + _weights[rightIndex] - newRightWeight;
+    }
+
+    // FIXED: Apply pixel-based size constraints using contentSize
+    if (widget.sizeConstraints != null) {
+      final leftConstraint = widget.sizeConstraints![leftIndex];
+      final rightConstraint = widget.sizeConstraints![rightIndex];
+
+      // Calculate actual pixel sizes based on contentSize (not totalSize)
+      final leftSize = contentSize * newLeftWeight;
+      final rightSize = contentSize * newRightWeight;
+
+      // Check left pane min/max
+      if (leftConstraint.minSize != null &&
+          leftSize < leftConstraint.minSize!) {
+        newLeftWeight = leftConstraint.minSize! / contentSize;
+        newRightWeight =
+            _weights[leftIndex] + _weights[rightIndex] - newLeftWeight;
+      }
+      if (leftConstraint.maxSize != null &&
+          leftSize > leftConstraint.maxSize!) {
+        newLeftWeight = leftConstraint.maxSize! / contentSize;
+        newRightWeight =
+            _weights[leftIndex] + _weights[rightIndex] - newLeftWeight;
+      }
+
+      // Check right pane min/max
+      if (rightConstraint.minSize != null &&
+          rightSize < rightConstraint.minSize!) {
+        newRightWeight = rightConstraint.minSize! / contentSize;
+        newLeftWeight =
+            _weights[leftIndex] + _weights[rightIndex] - newRightWeight;
+      }
+      if (rightConstraint.maxSize != null &&
+          rightSize > rightConstraint.maxSize!) {
+        newRightWeight = rightConstraint.maxSize! / contentSize;
+        newLeftWeight =
+            _weights[leftIndex] + _weights[rightIndex] - newRightWeight;
+      }
     }
 
     // Only update if both constraints are satisfied
@@ -164,17 +235,13 @@ class _SplitViewState extends State<SplitView> {
 
         return Flex(
           direction: isHorizontal ? Axis.horizontal : Axis.vertical,
-          children: _buildChildren(contentSize, totalSize, isHorizontal),
+          children: _buildChildren(contentSize, isHorizontal),
         );
       },
     );
   }
 
-  List<Widget> _buildChildren(
-    double contentSize,
-    double totalSize,
-    bool isHorizontal,
-  ) {
+  List<Widget> _buildChildren(double contentSize, bool isHorizontal) {
     final children = <Widget>[];
 
     for (int i = 0; i < widget.children.length; i++) {
@@ -197,7 +264,8 @@ class _SplitViewState extends State<SplitView> {
             index: i,
             isHorizontal: isHorizontal,
             style: widget.dividerStyle,
-            onDrag: (delta) => _updateWeights(i, delta, totalSize),
+            onDrag: (delta) => _updateWeights(i, delta, contentSize),
+            onReset: widget.resetOnDoubleClick ? () => _resetWeights(i) : null,
           ),
         );
       }
@@ -272,12 +340,13 @@ class _AnimatedPaneState extends State<_AnimatedPane> {
   }
 }
 
-/// Divider widget with hover and drag support
+/// Divider widget with hover, drag, and double-click support
 class _Divider extends StatefulWidget {
   final int index;
   final bool isHorizontal;
   final DividerStyle style;
   final ValueChanged<double> onDrag;
+  final VoidCallback? onReset;
 
   const _Divider({
     super.key,
@@ -285,6 +354,7 @@ class _Divider extends StatefulWidget {
     required this.isHorizontal,
     required this.style,
     required this.onDrag,
+    this.onReset,
   });
 
   @override
@@ -316,6 +386,7 @@ class _DividerState extends State<_Divider> {
         onPanStart: (_) => setState(() => _isDragging = true),
         onPanEnd: (_) => setState(() => _isDragging = false),
         onPanCancel: () => setState(() => _isDragging = false),
+        onDoubleTap: widget.onReset,
         child: Container(
           width: widget.isHorizontal ? widget.style.width : null,
           height: widget.isHorizontal ? null : widget.style.width,

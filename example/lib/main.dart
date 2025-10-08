@@ -1,5 +1,5 @@
 // ============================================================================
-// FILE: example/lib/main.dart (Example App)
+// FILE: example/lib/main.dart (v1.1.0 Examples)
 // ============================================================================
 import 'package:flutter/material.dart';
 import 'package:enhanced_split_view/enhanced_split_view.dart';
@@ -12,7 +12,7 @@ class SplitViewExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Enhanced Split View Examples',
+      title: 'Enhanced Split View v1.1.0 Examples',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
@@ -39,13 +39,17 @@ class _ExampleHomeState extends State<ExampleHome> {
     Example('Nested Splits', NestedExample()),
     Example('Custom Styling', CustomStyleExample()),
     Example('IDE Layout', IDELayoutExample()),
+    // NEW v1.1.0 examples
+    Example('Double-Click Reset', DoubleClickResetExample()),
+    Example('Pixel Constraints', PixelConstraintsExample()),
+    Example('Collapsible Panes', CollapsiblePanesExample()),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enhanced Split View Examples'),
+        title: const Text('Enhanced Split View v1.1.0 Examples'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Row(
@@ -77,6 +81,10 @@ class Example {
   final Widget widget;
   const Example(this.title, this.widget);
 }
+
+// ============================================================================
+// EXISTING EXAMPLES (v1.0.0)
+// ============================================================================
 
 // Example 1: Basic 2-Pane
 class BasicExample extends StatelessWidget {
@@ -406,6 +414,324 @@ class IDELayoutExample extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// NEW v1.1.0 EXAMPLES
+// ============================================================================
+
+// Example 7: Double-Click Reset
+class DoubleClickResetExample extends StatelessWidget {
+  const DoubleClickResetExample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(
+                'Double-Click to Reset',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '🎯 NEW in v1.1.0: Double-click any divider to reset to initial position',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '1. Drag dividers to resize\n2. Double-click divider to reset',
+                style: TextStyle(fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SplitView(
+              direction: SplitDirection.horizontal,
+              initialWeights: const [0.3, 0.4, 0.3],
+              resetOnDoubleClick: true, // NEW feature
+              children: [
+                _buildPane('Left\n(30%)', Colors.red.shade100),
+                _buildPane('Center\n(40%)', Colors.blue.shade100),
+                _buildPane('Right\n(30%)', Colors.green.shade100),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPane(String text, Color color) {
+    return Container(
+      color: color,
+      child: Center(
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 18),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+// Example 8: Pixel Constraints
+class PixelConstraintsExample extends StatelessWidget {
+  const PixelConstraintsExample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(
+                'Pixel-Based Size Constraints',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '🎯 NEW in v1.1.0: Set min/max sizes in pixels, not just percentages',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Sidebar: 200-400px | Main: no limits | Properties: 150-300px',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SplitView(
+              direction: SplitDirection.horizontal,
+              initialWeights: const [0.25, 0.5, 0.25],
+              sizeConstraints: const [
+                SizeConstraint(minSize: 200, maxSize: 400), // Sidebar
+                SizeConstraint.none, // Main content
+                SizeConstraint(minSize: 150, maxSize: 300), // Properties
+              ],
+              children: [
+                _buildPane(
+                  'Sidebar\n200-400px',
+                  Colors.blue.shade100,
+                  'Try to resize smaller than 200px\nor larger than 400px',
+                ),
+                _buildPane(
+                  'Main Content\nNo limits',
+                  Colors.grey.shade50,
+                  'This pane has no size constraints',
+                ),
+                _buildPane(
+                  'Properties\n150-300px',
+                  Colors.orange.shade100,
+                  'Try to resize smaller than 150px\nor larger than 300px',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPane(String title, Color color, String description) {
+    return Container(
+      color: color,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                description,
+                style: const TextStyle(fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Example 9: Collapsible Panes (WORKING VERSION)
+class CollapsiblePanesExample extends StatefulWidget {
+  const CollapsiblePanesExample({super.key});
+
+  @override
+  State<CollapsiblePanesExample> createState() =>
+      _CollapsiblePanesExampleState();
+}
+
+class _CollapsiblePanesExampleState extends State<CollapsiblePanesExample> {
+  bool _leftCollapsed = false;
+  bool _rightCollapsed = false;
+  List<double> _weights = [0.2, 0.6, 0.2];
+
+  void _handleLeftCollapse(bool collapsed) {
+    setState(() {
+      _leftCollapsed = collapsed;
+      if (collapsed) {
+        // Collapse: give left pane minimal space (48px / total width ≈ 0.05)
+        _weights = [0.05, 0.75, 0.2];
+      } else {
+        // Expand: restore original weights
+        _weights = [0.2, 0.6, 0.2];
+      }
+    });
+  }
+
+  void _handleRightCollapse(bool collapsed) {
+    setState(() {
+      _rightCollapsed = collapsed;
+      if (collapsed) {
+        // Collapse: give right pane minimal space
+        _weights = [0.2, 0.75, 0.05];
+      } else {
+        // Expand: restore original weights
+        _weights = [0.2, 0.6, 0.2];
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(
+                'Collapsible Panes',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '🎯 NEW in v1.1.0: Click collapse buttons to hide/show panes',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Perfect for sidebars, tool panels, and navigation drawers',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SplitView(
+              key: ValueKey(_weights), // Force rebuild when weights change
+              direction: SplitDirection.horizontal,
+              initialWeights: _weights,
+              animated: true,
+              sizeConstraints: const [
+                SizeConstraint(minSize: 48, maxSize: 300), // Left
+                SizeConstraint.none, // Main
+                SizeConstraint(minSize: 48, maxSize: 300), // Right
+              ],
+              children: [
+                CollapsiblePane(
+                  collapsed: _leftCollapsed,
+                  collapseButtonAlignment: Alignment.topRight,
+                  onCollapsedChanged: _handleLeftCollapse,
+                  collapsedSize: 48,
+                  child: _buildCollapsibleContent(
+                    'Left Sidebar',
+                    Icons.menu,
+                    Colors.blue.shade100,
+                  ),
+                ),
+                _buildPane('Main Content', Colors.grey.shade50),
+                CollapsiblePane(
+                  collapsed: _rightCollapsed,
+                  collapseButtonAlignment: Alignment.topLeft,
+                  onCollapsedChanged: _handleRightCollapse,
+                  collapsedSize: 48,
+                  child: _buildCollapsibleContent(
+                    'Right Panel',
+                    Icons.settings,
+                    Colors.orange.shade100,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPane(String text, Color color) {
+    return Container(
+      color: color,
+      child: Center(child: Text(text, style: const TextStyle(fontSize: 20))),
+    );
+  }
+
+  Widget _buildCollapsibleContent(String title, IconData icon, Color color) {
+    return Container(
+      color: color,
+      child: Column(
+        children: [
+          const SizedBox(height: 60), // Space for collapse button
+          Icon(icon, size: 48, color: Colors.black54),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Click the collapse button in the corner to hide this pane',
+              style: TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ),
     );
   }

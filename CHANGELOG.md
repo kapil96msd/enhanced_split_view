@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-15
+
+### Added
+- **Double-Click Reset**: Double-click any divider to reset to initial weights
+    - New `resetOnDoubleClick` parameter (default: `true`)
+    - Perfect for quickly restoring layout after experimentation
+- **Pixel-Based Size Constraints**: Set min/max sizes in pixels, not just percentages
+    - New `SizeConstraint` class with `minSize` and `maxSize` properties
+    - New `sizeConstraints` parameter on `SplitView`
+    - More predictable layouts across different screen sizes
+- **Collapsible Panes**: Built-in collapse/expand functionality
+    - New `CollapsiblePane` widget
+    - Configurable collapse button position and icons
+    - Smooth collapse/expand animations
+    - Perfect for sidebars and tool panels
+- Three new example demos showcasing v1.1.0 features
+- Additional tests for new features (30+ total tests)
+
+### Changed
+- Improved internal state management for better performance
+- Enhanced documentation with v1.1.0 feature examples
+
+### Fixed
+- Better handling of edge cases with size constraints
+- Improved animation consistency
+
 ## [1.0.0] - 2025-10-06
 
 ### Added
@@ -35,32 +61,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic weight normalization
 - Debug mode warnings for configuration issues
 
-### Technical
-- Immutable `DividerStyle` class with proper equality operators
-- Proper animation state management with AnimatedSize
-- Comprehensive edge case handling
-- Widget keys for performance optimization
-- Mouse cursor changes for resize affordance
-- Support for horizontal and vertical layouts
-- Flexible layout using Flex widget
-
-### Documentation
-- Complete README with usage examples
-- API reference table
-- Troubleshooting guide
-- Common use cases section
-- Performance tips
-- Accessibility features documented
-
-### Example App
-- Navigation rail for easy demo switching
-- Basic 2-pane split demonstration
-- 3-pane split with live weight display
-- Vertical split example
-- Nested splits example
-- Custom styling demonstration
-- IDE layout (complex nested) example
-
+[1.1.0]: https://github.com/kapil96msd/enhanced_split_view/releases/tag/v1.1.0
 [1.0.0]: https://github.com/kapil96msd/enhanced_split_view/releases/tag/v1.0.0
-
----

@@ -1,6 +1,6 @@
 name: enhanced_split_view
-description: A clean, performant split view widget for Flutter with smooth animations, resizable panes, and an intuitive API. Perfect for building complex layouts like IDEs, dashboards, and multi-panel interfaces.
-version: 1.0.0
+description: A clean, performant split view widget for Flutter with smooth animations, resizable panes, collapsible panels, and pixel-based constraints. Perfect for building complex layouts like IDEs, dashboards, and multi-panel interfaces.
+version: 1.1.0
 homepage: https://github.com/kapil96msd/enhanced_split_view
 repository: https://github.com/kapil96msd/enhanced_split_view
 issue_tracker: https://github.com/kapil96msd/enhanced_split_view/issues

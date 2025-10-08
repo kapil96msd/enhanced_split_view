@@ -569,4 +569,491 @@ void main() {
       expect(SplitDirection.vertical.toString(), contains('vertical'));
     });
   });
+
+  group('SplitView v1.0.0 Tests', () {
+    testWidgets('renders with 2 children', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SplitView(
+              direction: SplitDirection.horizontal,
+              children: [
+                Container(key: const Key('pane1')),
+                Container(key: const Key('pane2')),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('pane1')), findsOneWidget);
+      expect(find.byKey(const Key('pane2')), findsOneWidget);
+    });
+
+    testWidgets('uses initial weights', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.3, 0.7],
+                animated: false,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final pane1 = tester.getSize(find.byKey(const Key('pane1')));
+      final pane2 = tester.getSize(find.byKey(const Key('pane2')));
+
+      final total = pane1.width + pane2.width;
+      final ratio1 = pane1.width / total;
+      final ratio2 = pane2.width / total;
+
+      expect(ratio1, closeTo(0.3, 0.02));
+      expect(ratio2, closeTo(0.7, 0.02));
+    });
+
+    testWidgets('calls onWeightsChanged', (tester) async {
+      List<double>? capturedWeights;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SplitView(
+              direction: SplitDirection.horizontal,
+              onWeightsChanged: (weights) => capturedWeights = weights,
+              children: [
+                Container(key: const Key('pane1')),
+                Container(key: const Key('pane2')),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(100, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(capturedWeights, isNotNull);
+      expect(capturedWeights?.length, 2);
+    });
+
+    testWidgets('respects minWeight', (tester) async {
+      List<double>? capturedWeights;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                minWeight: 0.2,
+                onWeightsChanged: (weights) => capturedWeights = weights,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      if (capturedWeights != null) {
+        expect(capturedWeights![0], greaterThanOrEqualTo(0.2));
+        expect(capturedWeights![1], greaterThanOrEqualTo(0.2));
+      }
+    });
+  });
+
+  group('SplitView v1.1.0 - Double-Click Reset', () {
+    testWidgets('resets to initial weights on double-click', (tester) async {
+      List<double>? currentWeights;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.5, 0.5],
+                resetOnDoubleClick: true,
+                animated: false,
+                onWeightsChanged: (weights) => currentWeights = weights,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Drag to change weights
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(200, 0),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify weights changed
+      expect(currentWeights, isNotNull);
+      expect(currentWeights![0], isNot(closeTo(0.5, 0.01)));
+
+      // Double-click to reset
+      await tester.tap(find.byType(GestureDetector).first, warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byType(GestureDetector).first, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      // Verify weights reset
+      expect(currentWeights![0], closeTo(0.5, 0.01));
+      expect(currentWeights![1], closeTo(0.5, 0.01));
+    });
+
+    testWidgets('respects resetOnDoubleClick=false', (tester) async {
+      List<double>? currentWeights;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.5, 0.5],
+                resetOnDoubleClick: false,
+                animated: false,
+                onWeightsChanged: (weights) => currentWeights = weights,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Drag to change weights
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(200, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final weightsAfterDrag = List<double>.from(currentWeights!);
+
+      // Double-click (should not reset)
+      await tester.tap(find.byType(GestureDetector).first, warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byType(GestureDetector).first, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      // Verify weights didn't change
+      expect(currentWeights![0], closeTo(weightsAfterDrag[0], 0.01));
+    });
+  });
+
+  group('SplitView v1.1.0 - Pixel Constraints', () {
+    testWidgets('respects minSize constraint', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.5, 0.5],
+                sizeConstraints: const [
+                  SizeConstraint(minSize: 300), // Left minimum 300px
+                  SizeConstraint.none,
+                ],
+                animated: false,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Try to drag left pane smaller than 300px
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(-300, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final pane1Size = tester.getSize(find.byKey(const Key('pane1')));
+
+      // Should not go below 300px
+      expect(pane1Size.width, greaterThanOrEqualTo(300));
+    });
+
+    testWidgets('respects maxSize constraint', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.3, 0.7],
+                sizeConstraints: const [
+                  SizeConstraint(maxSize: 400), // Left maximum 400px
+                  SizeConstraint.none,
+                ],
+                animated: false,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Try to drag left pane larger than 400px
+      await tester.drag(
+        find.byType(GestureDetector).first,
+        const Offset(300, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final pane1Size = tester.getSize(find.byKey(const Key('pane1')));
+
+      // Should not exceed 400px
+      expect(pane1Size.width, lessThanOrEqualTo(400));
+    });
+
+    testWidgets('works with both min and max constraints', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 500,
+              child: SplitView(
+                direction: SplitDirection.horizontal,
+                initialWeights: const [0.3, 0.7],
+                sizeConstraints: const [
+                  SizeConstraint(minSize: 200, maxSize: 400),
+                  SizeConstraint.none,
+                ],
+                animated: false,
+                children: [
+                  Container(key: const Key('pane1')),
+                  Container(key: const Key('pane2')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final pane1Size = tester.getSize(find.byKey(const Key('pane1')));
+
+      expect(pane1Size.width, greaterThanOrEqualTo(200));
+      expect(pane1Size.width, lessThanOrEqualTo(400));
+    });
+  });
+
+  group('CollapsiblePane v1.1.0', () {
+    testWidgets('renders with collapse button', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: CollapsiblePane(child: Text('Content'))),
+        ),
+      );
+
+      expect(find.text('Content'), findsOneWidget);
+      expect(find.byType(IconButton), findsOneWidget);
+    });
+
+    testWidgets('toggles collapsed state on button press', (tester) async {
+      bool? collapsed;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CollapsiblePane(
+              onCollapsedChanged: (value) => collapsed = value,
+              child: const Text('Content'),
+            ),
+          ),
+        ),
+      );
+
+      // Find and tap collapse button
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      expect(collapsed, true);
+
+      // Tap again to expand
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      expect(collapsed, false);
+    });
+
+    testWidgets('hides content when collapsed', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: CollapsiblePane(collapsed: true, child: Text('Content')),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // When collapsed, the child text should not be visible
+      // (it's replaced by just the button)
+      expect(find.text('Content'), findsNothing);
+      expect(find.byType(IconButton), findsOneWidget);
+    });
+
+    testWidgets('shows content when expanded', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: CollapsiblePane(collapsed: false, child: Text('Content')),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // When expanded, content should be visible
+      expect(find.text('Content'), findsOneWidget);
+      expect(find.byType(IconButton), findsOneWidget);
+    });
+
+    testWidgets('can hide collapse button', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: CollapsiblePane(
+              showCollapseButton: false,
+              child: Text('Content'),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(IconButton), findsNothing);
+      expect(find.text('Content'), findsOneWidget);
+    });
+
+    testWidgets('uses custom icons when provided', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: CollapsiblePane(
+              collapseIcon: Icons.arrow_back,
+              expandIcon: Icons.arrow_forward,
+              child: Text('Content'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Find the IconButton and check its icon
+      final iconButton = tester.widget<IconButton>(find.byType(IconButton));
+      final icon = iconButton.icon as Icon;
+
+      // When expanded, should show collapseIcon
+      expect(icon.icon, Icons.arrow_back);
+    });
+
+    testWidgets('respects collapseButtonAlignment', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              height: 400,
+              child: CollapsiblePane(
+                collapseButtonAlignment: Alignment.topLeft,
+                child: Text('Content'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Button should be positioned at top-left
+      final buttonPosition = tester.getTopLeft(find.byType(IconButton));
+      expect(buttonPosition.dx, lessThan(50)); // Near left edge
+      expect(buttonPosition.dy, lessThan(50)); // Near top edge
+    });
+  });
+
+  group('Models v1.1.0', () {
+    test('SizeConstraint creates correctly', () {
+      const constraint = SizeConstraint(minSize: 100, maxSize: 500);
+
+      expect(constraint.minSize, 100);
+      expect(constraint.maxSize, 500);
+    });
+
+    test('SizeConstraint.none has no constraints', () {
+      const constraint = SizeConstraint.none;
+
+      expect(constraint.minSize, null);
+      expect(constraint.maxSize, null);
+    });
+
+    test('SizeConstraint equality works', () {
+      const constraint1 = SizeConstraint(minSize: 100, maxSize: 500);
+      const constraint2 = SizeConstraint(minSize: 100, maxSize: 500);
+      const constraint3 = SizeConstraint(minSize: 200, maxSize: 500);
+
+      expect(constraint1, equals(constraint2));
+      expect(constraint1, isNot(equals(constraint3)));
+    });
+  });
 }
